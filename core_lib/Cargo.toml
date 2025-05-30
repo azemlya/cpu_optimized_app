@@ -1,0 +1,50 @@
+[package]
+name = "core_lib"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aleksey Zemlyansky <azemlya@gmail.com>"]
+description = "Оптимизированная библиотека для различных архитектур процессоров"
+license = "MIT"
+
+[lib]
+name = "core_lib"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Основные зависимости
+log = "0.4"
+env_logger = "0.11"
+thiserror = "2.0"
+clap = { version = "4.5", features = ["derive"] }
+
+# Асинхронная среда выполнения
+tokio = { version = "1.45", features = ["full"] }
+
+# Сериализация/десериализация
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Опциональные аллокаторы памяти
+jemallocator = { version = "0.5", optional = true }
+mimalloc = { version = "0.1", optional = true }
+
+[features]
+default = ["system-allocator"]
+
+# Аллокаторы памяти
+system-allocator = []
+jemalloc-allocator = ["dep:jemallocator"]
+mimalloc-allocator = ["dep:mimalloc"]
+
+# Оптимизации для разных архитектур
+avx2 = []
+avx = []
+sse4_2 = []
+neon = []
+
+[dev-dependencies]
+criterion = "0.6"
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false

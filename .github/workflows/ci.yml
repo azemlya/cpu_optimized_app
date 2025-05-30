@@ -1,0 +1,160 @@
+# Конфигурация GitHub Actions для автоматизации тестирования проекта CPU Optimized App
+name: CI/CD
+
+# Запуск при пуше в ветку main и при создании pull request
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Определение задач
+jobs:
+  # Проверка форматирования кода
+  format:
+    name: Проверка форматирования
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Установка Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt
+          override: true
+      - name: Проверка форматирования
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  # Проверка линтером
+  lint:
+    name: Проверка линтером
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Установка Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+          override: true
+      - name: Проверка линтером
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+  # Сборка и тестирование на разных платформах
+  build:
+    name: Сборка и тестирование
+    needs: [format, lint]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Установка Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+      - name: Сборка
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+      - name: Запуск тестов
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  # Сборка библиотек с разными оптимизациями
+  build-libs:
+    name: Сборка библиотек
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Установка Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Установка зависимостей
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+      - name: Сборка библиотек
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh --arch=x86_64 --features=avx2 --allocator=system
+          ./scripts/build.sh --arch=x86_64 --features=avx --allocator=system
+          ./scripts/build.sh --arch=x86_64 --features=sse4_2 --allocator=system
+          ./scripts/build.sh --arch=x86_64 --features=base --allocator=system
+
+  # Запуск бенчмарков
+  benchmark:
+    name: Запуск бенчмарков
+    needs: [build-libs]
+    runs-on: ubuntu-latest
+    # Запускаем только при пуше в main, чтобы не тратить ресурсы на PR
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Установка Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Установка зависимостей
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+      - name: Запуск бенчмарков
+        run: |
+          chmod +x scripts/benchmark.sh
+          ./scripts/benchmark.sh --bench=process_array --compare --features=avx2,avx,sse4_2,base
+      - name: Сохранение результатов бенчмарков
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark_reports/
+
+  # Сборка и публикация документации
+  docs:
+    name: Сборка документации
+    needs: [build]
+    runs-on: ubuntu-latest
+    # Запускаем только при пуше в main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Установка Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Сборка документации
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --no-deps
+      - name: Подготовка документации для публикации
+        run: |
+          echo "<meta http-equiv=\"refresh\" content=\"0; url=cpu_optimized_app\">" > target/doc/index.html
+      - name: Публикация документации
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/doc
+          publish_branch: gh-pages
+          force_orphan: true

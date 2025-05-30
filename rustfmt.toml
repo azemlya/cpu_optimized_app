@@ -1,0 +1,52 @@
+# Конфигурация форматирования кода для проекта CPU Optimized App
+# Версия для стабильного канала Rust
+
+# Максимальная ширина строки
+max_width = 100
+
+# Отступы
+tab_spaces = 4
+hard_tabs = false
+
+# Форматирование импортов
+reorder_imports = true
+
+# Форматирование кода
+reorder_modules = true
+use_small_heuristics = "Default"
+fn_params_layout = "Tall"
+match_block_trailing_comma = true
+
+# Стабильные возможности
+edition = "2021"
+
+# Для использования расширенных возможностей форматирования,
+# раскомментируйте следующую строку и используйте nightly канал Rust
+# unstable_features = true
+
+# Нестабильные возможности (требуют nightly)
+# Эти настройки будут работать только если включен флаг
+# unstable_features и используется nightly канал Rust
+#
+# wrap_comments = true
+# comment_width = 100
+# normalize_comments = true
+# format_strings = true
+# format_macro_matchers = true
+# format_macro_bodies = true
+# imports_indent = "Block"
+# imports_layout = "HorizontalVertical"
+# imports_granularity = "Crate"
+# binop_separator = "Front"
+# combine_control_expr = true
+# force_multiline_blocks = false
+# format_code_in_doc_comments = true
+# overflow_delimited_expr = false
+# reorder_impl_items = true
+# struct_field_align_threshold = 0
+# struct_lit_single_line = true
+# trailing_comma = "Vertical"
+# trailing_semicolon = true
+# type_punctuation_density = "Wide"
+# match_arm_blocks = true
+# version = "Two"

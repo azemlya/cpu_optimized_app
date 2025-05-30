@@ -1,0 +1,6 @@
+[build]
+rustflags = [
+    "-A", "clippy::unwrap_used",
+    "-W", "clippy::type_complexity",
+    "-D", "deprecated"
+]
